@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: mainline
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -22,9 +24,32 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Show current tasks
+        run: python main.py list
+
       - name: Send daily status updates
         env:
           DEADLINEHQ_RESEND_API_KEY: ${{ secrets.DEADLINEHQ_RESEND_API_KEY }}
           DEADLINEHQ_EMAIL_PASSWORD: ${{ secrets.DEADLINEHQ_EMAIL_PASSWORD }}
           DEADLINEHQ_SENDER_EMAIL: ${{ secrets.DEADLINEHQ_SENDER_EMAIL }}
-        run: python -c "from src.scheduler import send_daily_updates; send_daily_updates()"
+        run: |
+          python -c "
+          from src.storage import load_tasks
+          from src.reminder import send_daily_status
+
+          tasks = load_tasks()
+          print(f'Total tasks: {len(tasks)}')
+          
+          emails_sent = 0
+          for task in tasks:
+              print(f'Task: {task.name} (subscribers: {len(task.subscribers)})')
+              for sub in task.subscribers:
+                  print(f'  Sending status to: {sub}')
+                  send_daily_status(task, sub)
+                  emails_sent += 1
+          
+          print(f'---')
+          print(f'Total status emails sent: {emails_sent}')
+          if emails_sent == 0:
+              print('No subscribers found. Add subscribers with: add_subscriber action')
+          "

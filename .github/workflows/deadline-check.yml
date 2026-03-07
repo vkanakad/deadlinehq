@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: mainline
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -22,9 +24,54 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Show current tasks
+        run: python main.py list
+
       - name: Check deadlines and send alerts
         env:
           DEADLINEHQ_RESEND_API_KEY: ${{ secrets.DEADLINEHQ_RESEND_API_KEY }}
           DEADLINEHQ_EMAIL_PASSWORD: ${{ secrets.DEADLINEHQ_EMAIL_PASSWORD }}
           DEADLINEHQ_SENDER_EMAIL: ${{ secrets.DEADLINEHQ_SENDER_EMAIL }}
-        run: python -c "from src.scheduler import check_deadlines; check_deadlines()"
+        run: |
+          python -c "
+          from datetime import datetime, timedelta
+          from src.storage import load_tasks
+          from src.config import get_config
+          from src.reminder import send_deadline_alert
+
+          config = get_config()
+          tasks = load_tasks()
+          now = datetime.now()
+          threshold_days = config.get('scheduler', 'deadline_alert_threshold_days', default=1)
+          alert_threshold = timedelta(days=threshold_days)
+
+          print(f'Current time: {now}')
+          print(f'Alert threshold: {threshold_days} day(s)')
+          print(f'Total tasks: {len(tasks)}')
+          print('---')
+
+          alerts_sent = 0
+          for task in tasks:
+              time_left = task.deadline - now
+              print(f'Task: {task.name}')
+              print(f'  Deadline: {task.deadline}')
+              print(f'  Time left: {time_left}')
+              print(f'  Completed: {task.completed}')
+              print(f'  Subscribers: {task.subscribers}')
+              
+              if not task.completed and time_left <= alert_threshold and time_left.total_seconds() > 0:
+                  print(f'  >>> ALERT: Deadline approaching!')
+                  for sub in task.subscribers:
+                      send_deadline_alert(task, sub)
+                      alerts_sent += 1
+              elif task.completed:
+                  print(f'  (skipped - completed)')
+              elif time_left.total_seconds() <= 0:
+                  print(f'  (skipped - deadline passed)')
+              else:
+                  print(f'  (no alert needed - deadline not within threshold)')
+              print()
+
+          print(f'---')
+          print(f'Total alerts sent: {alerts_sent}')
+          "
