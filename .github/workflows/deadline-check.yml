@@ -2,8 +2,8 @@ name: DeadlineHQ - Check Deadlines & Send Alerts
 
 on:
   schedule:
-    # Run every hour at minute 0
-    - cron: '0 * * * *'
+    # Run once daily at 3:00 PM UTC (9:00 AM CST)
+    - cron: '0 15 * * *'
   workflow_dispatch: # Allow manual trigger from GitHub UI
 
 jobs:
