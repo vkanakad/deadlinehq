@@ -1,0 +1,30 @@
+name: DeadlineHQ - Daily Status Update
+
+on:
+  schedule:
+    # Run every day at 3:00 PM UTC (9:00 AM CST)
+    - cron: '0 15 * * *'
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+jobs:
+  daily-status:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Send daily status updates
+        env:
+          DEADLINEHQ_RESEND_API_KEY: ${{ secrets.DEADLINEHQ_RESEND_API_KEY }}
+          DEADLINEHQ_EMAIL_PASSWORD: ${{ secrets.DEADLINEHQ_EMAIL_PASSWORD }}
+          DEADLINEHQ_SENDER_EMAIL: ${{ secrets.DEADLINEHQ_SENDER_EMAIL }}
+        run: python -c "from src.scheduler import send_daily_updates; send_daily_updates()"
