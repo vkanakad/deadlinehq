@@ -17,7 +17,7 @@ logger = get_logger()
 
 # Rate limiter for Resend API (2 requests per second max)
 _last_email_time = 0
-_rate_limit_delay = 0.6  # 600ms delay between emails to stay under 2 req/sec
+_rate_limit_delay = 0.75  # 750ms delay between emails to stay well under 2 req/sec (1.33 req/sec)
 
 
 def send_email(to_email: str, subject: str, body: str):
@@ -56,7 +56,7 @@ def send_email(to_email: str, subject: str, body: str):
 
 
 def _send_via_resend(to_email: str, subject: str, body: str):
-    """Send email using the Resend API.
+    """Send email using the Resend API with retry logic for rate limiting.
     
     Requires:
         - config.json: email.provider = "resend"
@@ -90,20 +90,40 @@ def _send_via_resend(to_email: str, subject: str, body: str):
     
     resend.api_key = api_key
     
-    try:
-        params = {
-            "from": from_email,
-            "to": [to_email],
-            "subject": subject,
-            "text": body
-        }
-        
-        email = resend.Emails.send(params)
-        logger.info(f"Email sent to {to_email} via Resend (id: {email.get('id', 'unknown')})")
-        print(f"Email sent to {to_email}")
-    except Exception as e:
-        logger.error(f"Failed to send email via Resend: {e}")
-        print(f"Failed to send email: {e}")
+    # Retry logic with exponential backoff for rate limiting
+    max_retries = 3
+    retry_wait = 2  # Start with 2 second wait on first retry
+    
+    for attempt in range(max_retries):
+        try:
+            params = {
+                "from": from_email,
+                "to": [to_email],
+                "subject": subject,
+                "text": body
+            }
+            
+            email = resend.Emails.send(params)
+            logger.info(f"Email sent to {to_email} via Resend (id: {email.get('id', 'unknown')})")
+            print(f"Email sent to {to_email}")
+            return
+        except Exception as e:
+            error_str = str(e)
+            # Check if it's a rate limit error
+            if "Too many requests" in error_str or "rate limit" in error_str.lower():
+                if attempt < max_retries - 1:
+                    logger.warning(f"Rate limited. Retrying in {retry_wait}s... (attempt {attempt + 1}/{max_retries})")
+                    print(f"Rate limited. Waiting {retry_wait}s before retry...")
+                    time.sleep(retry_wait)
+                    retry_wait *= 2  # Exponential backoff
+                else:
+                    logger.error(f"Failed to send email via Resend after {max_retries} attempts: {e}")
+                    print(f"Failed to send email after {max_retries} retries: {e}")
+            else:
+                # Non-rate-limit error, fail immediately
+                logger.error(f"Failed to send email via Resend: {e}")
+                print(f"Failed to send email: {e}")
+                return
 
 
 def _send_via_smtp(to_email: str, subject: str, body: str):
