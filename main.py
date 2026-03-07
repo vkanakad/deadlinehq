@@ -109,9 +109,19 @@ def list_tasks():
     tasks = load_tasks()
     for task in tasks:
         tags_str = f", Tags: {', '.join(task.tags)}" if task.tags else ""
-        print(f"Task: {task.name}, Priority: {task.priority.name}, Deadline: {task.deadline}, Completed: {task.completed}{tags_str}")
-        for st in task.sub_tasks:
-            print(f"  Sub: {st.name}, Deadline: {st.deadline}, Completed: {st.completed}")
+        print(f"\nTask: {task.name}")
+        print(f"  Priority: {task.priority.name}")
+        print(f"  Deadline: {task.deadline}")
+        print(f"  Completed: {task.completed}")
+        if task.tags:
+            print(f"  Tags: {', '.join(task.tags)}")
+        
+        if task.sub_tasks:
+            print(f"  Sub-tasks:")
+            for st in task.sub_tasks:
+                print(f"    - {st.name}")
+                print(f"      Deadline: {st.deadline}")
+                print(f"      Completed: {st.completed}")
 
 def complete_task(task_name):
     tasks = load_tasks()

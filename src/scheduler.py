@@ -29,13 +29,38 @@ def check_deadlines():
     alert_threshold = timedelta(days=threshold_days)
     
     for task in tasks:
-        if not task.completed and (task.deadline - now) <= alert_threshold and (task.deadline - now).total_seconds() > 0:
+        time_left = task.deadline - now
+        print(f"\nTask: {task.name}")
+        print(f"  Deadline: {task.deadline}")
+        print(f"  Time left: {time_left}")
+        print(f"  Completed: {task.completed}")
+        print(f"  Subscribers: {task.subscribers}")
+        
+        if not task.completed and time_left <= alert_threshold and time_left.total_seconds() > 0:
+            print(f"  >>> ALERT: Deadline approaching!")
             for sub in task.subscribers:
                 send_deadline_alert(task, sub)
+        elif task.deadline <= now:
+            print(f"  (skipped - deadline passed)")
+        else:
+            print(f"  (no alert needed - deadline not within threshold)")
+        
+        # Check sub-tasks
         for st in task.sub_tasks:
-            if not st.completed and (st.deadline - now) <= alert_threshold and (st.deadline - now).total_seconds() > 0:
+            st_time_left = st.deadline - now
+            print(f"  Sub-task: {st.name}")
+            print(f"    Deadline: {st.deadline}")
+            print(f"    Time left: {st_time_left}")
+            print(f"    Completed: {st.completed}")
+            
+            if not st.completed and st_time_left <= alert_threshold and st_time_left.total_seconds() > 0:
+                print(f"    >>> ALERT: Sub-task deadline approaching!")
                 for sub in task.subscribers:
                     send_deadline_alert(task, sub)
+            elif st.deadline <= now:
+                print(f"    (skipped - deadline passed)")
+            else:
+                print(f"    (no alert needed - deadline not within threshold)")
 
 
 def send_daily_updates():
