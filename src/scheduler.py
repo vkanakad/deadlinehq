@@ -58,7 +58,7 @@ def check_deadlines():
                 if not st.completed and st_time_left <= alert_threshold and st_time_left.total_seconds() > 0:
                     print(f"      >>> ALERT: Sub-task deadline approaching!")
                     for sub in task.subscribers:
-                        send_deadline_alert(task, sub)
+                        send_deadline_alert(task, sub, sub_task=st)
                 elif st.deadline <= now:
                     print(f"      (skipped - deadline passed)")
                 else:

@@ -192,12 +192,32 @@ def send_daily_status(task, subscriber):
     send_email(subscriber, f"Daily Status: {task.name}", status)
 
 
-def send_deadline_alert(task, subscriber):
-    """Send a deadline alert email for a task.
+def send_deadline_alert(task, subscriber, sub_task=None):
+    """Send a deadline alert email for a task or sub-task.
     
     Args:
         task: Task object approaching deadline
         subscriber: Subscriber email address
+        sub_task: Optional SubTask object if alert is for a sub-task
     """
-    body = f"Alert: Deadline approaching for task '{task.name}' on {task.deadline}"
-    send_email(subscriber, f"Deadline Alert: {task.name}", body)
+    if sub_task:
+        # Alert for sub-task
+        subject = f"Deadline Alert: {task.name} - Sub-task '{sub_task.name}'"
+        body = f"""Deadline Alert
+
+Task: {task.name}
+Sub-task: {sub_task.name}
+Deadline: {sub_task.deadline}
+
+This sub-task is approaching its deadline. Please complete it as soon as possible."""
+    else:
+        # Alert for main task
+        subject = f"Deadline Alert: {task.name}"
+        body = f"""Deadline Alert
+
+Task: {task.name}
+Deadline: {task.deadline}
+
+This task is approaching its deadline. Please complete it as soon as possible."""
+    
+    send_email(subscriber, subject, body)
