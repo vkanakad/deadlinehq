@@ -25,7 +25,11 @@ on:
         required: false
         type: string
       deadline:
-        description: 'Deadline in ISO format, e.g. 2026-12-31T17:00:00 (for create/add_sub)'
+        description: 'Deadline in ISO format, e.g. 2026-12-31T17:00:00 (for create action only)'
+        required: false
+        type: string
+      sub_task_deadline:
+        description: 'Sub-task deadline in ISO format, e.g. 2026-12-31T17:00:00 (for add_sub action only)'
         required: false
         type: string
       priority:
@@ -129,7 +133,7 @@ jobs:
 
       - name: Add sub-task
         if: inputs.action == 'add_sub'
-        run: python main.py add_sub "${{ inputs.task_name }}" "${{ inputs.sub_task_name }}" "${{ inputs.sub_task_description }}" "${{ inputs.deadline }}"
+        run: python main.py add_sub "${{ inputs.task_name }}" "${{ inputs.sub_task_name }}" "${{ inputs.sub_task_description }}" "${{ inputs.sub_task_deadline }}"
 
       - name: Set priority
         if: inputs.action == 'set_priority'
