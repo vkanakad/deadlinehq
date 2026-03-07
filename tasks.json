@@ -28,7 +28,9 @@
         "completed": false,
         "priority": "MEDIUM",
         "tags": [],
-        "subscribers": [],
+        "subscribers": [
+            "vinay04c8@gmail.com"
+        ],
         "sub_tasks": []
     }
 ]
