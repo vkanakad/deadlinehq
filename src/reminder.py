@@ -7,6 +7,7 @@ Supports two email providers:
 Configure the provider in config.json under email.provider ("resend" or "smtp").
 """
 import smtplib
+import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from .config import get_config
@@ -14,17 +15,34 @@ from .logger import get_logger
 
 logger = get_logger()
 
+# Rate limiter for Resend API (2 requests per second max)
+_last_email_time = 0
+_rate_limit_delay = 0.6  # 600ms delay between emails to stay under 2 req/sec
+
 
 def send_email(to_email: str, subject: str, body: str):
     """Send an email using the configured provider.
     
     Automatically routes to Resend or SMTP based on config.json settings.
+    Applies rate limiting to respect Resend API limits (2 requests/second max).
     
     Args:
         to_email: Recipient email address
         subject: Email subject
         body: Email body text
     """
+    global _last_email_time
+    
+    # Rate limiting: enforce minimum delay between emails
+    current_time = time.time()
+    time_since_last = current_time - _last_email_time
+    if time_since_last < _rate_limit_delay:
+        sleep_duration = _rate_limit_delay - time_since_last
+        print(f"Rate limit: sleeping {sleep_duration:.2f}s before next email")
+        time.sleep(sleep_duration)
+    
+    _last_email_time = time.time()
+    
     config = get_config()
     provider = config.get('email', 'provider', default='smtp')
     

@@ -27,7 +27,6 @@ def check_deadlines():
     
     threshold_days = config.get('scheduler', 'deadline_alert_threshold_days', default=1)
     alert_threshold = timedelta(days=threshold_days)
-    email_count = 0
     
     for task in tasks:
         time_left = task.deadline - now
@@ -41,10 +40,6 @@ def check_deadlines():
             print(f"  >>> ALERT: Deadline approaching!")
             for sub in task.subscribers:
                 send_deadline_alert(task, sub)
-                email_count += 1
-                # Add delay to respect Resend API rate limit (2 requests/second max)
-                if email_count % 2 == 0:
-                    time.sleep(0.6)
         elif task.deadline <= now:
             print(f"  (skipped - deadline passed)")
         else:
@@ -62,10 +57,6 @@ def check_deadlines():
                 print(f"    >>> ALERT: Sub-task deadline approaching!")
                 for sub in task.subscribers:
                     send_deadline_alert(task, sub)
-                    email_count += 1
-                    # Add delay to respect Resend API rate limit (2 requests/second max)
-                    if email_count % 2 == 0:
-                        time.sleep(0.6)
             elif st.deadline <= now:
                 print(f"    (skipped - deadline passed)")
             else:
