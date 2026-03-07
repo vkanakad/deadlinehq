@@ -1,0 +1,125 @@
+name: DeadlineHQ - Manage Tasks
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - create
+          - complete
+          - delete
+          - add_subscriber
+          - add_sub
+          - set_priority
+          - add_tag
+          - list
+      task_name:
+        description: 'Task name (required for all actions except list)'
+        required: false
+        type: string
+      description:
+        description: 'Task description (for create action)'
+        required: false
+        type: string
+      deadline:
+        description: 'Deadline in ISO format, e.g. 2026-12-31T17:00:00 (for create/add_sub)'
+        required: false
+        type: string
+      priority:
+        description: 'Priority (for create/set_priority)'
+        required: false
+        type: choice
+        default: 'MEDIUM'
+        options:
+          - LOW
+          - MEDIUM
+          - HIGH
+          - URGENT
+      tags:
+        description: 'Comma-separated tags (for create action)'
+        required: false
+        type: string
+      subscriber_email:
+        description: 'Subscriber email (for add_subscriber action)'
+        required: false
+        type: string
+      sub_task_name:
+        description: 'Sub-task name (for add_sub/complete sub-task)'
+        required: false
+        type: string
+      sub_task_description:
+        description: 'Sub-task description (for add_sub action)'
+        required: false
+        type: string
+      tag:
+        description: 'Tag name (for add_tag action)'
+        required: false
+        type: string
+
+jobs:
+  manage-task:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: mainline
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create task
+        if: inputs.action == 'create'
+        run: |
+          ARGS="\"${{ inputs.task_name }}\" \"${{ inputs.description }}\" \"${{ inputs.deadline }}\""
+          ARGS="$ARGS --priority ${{ inputs.priority }}"
+          if [ -n "${{ inputs.tags }}" ]; then
+            ARGS="$ARGS --tags \"${{ inputs.tags }}\""
+          fi
+          eval python main.py create $ARGS
+
+      - name: Complete task
+        if: inputs.action == 'complete'
+        run: python main.py complete "${{ inputs.task_name }}"
+
+      - name: Delete task
+        if: inputs.action == 'delete'
+        run: python main.py delete "${{ inputs.task_name }}"
+
+      - name: Add subscriber
+        if: inputs.action == 'add_subscriber'
+        run: python main.py add_subscriber "${{ inputs.task_name }}" "${{ inputs.subscriber_email }}"
+
+      - name: Add sub-task
+        if: inputs.action == 'add_sub'
+        run: python main.py add_sub "${{ inputs.task_name }}" "${{ inputs.sub_task_name }}" "${{ inputs.sub_task_description }}" "${{ inputs.deadline }}"
+
+      - name: Set priority
+        if: inputs.action == 'set_priority'
+        run: python main.py set_priority "${{ inputs.task_name }}" "${{ inputs.priority }}"
+
+      - name: Add tag
+        if: inputs.action == 'add_tag'
+        run: python main.py add_tag "${{ inputs.task_name }}" "${{ inputs.tag }}"
+
+      - name: List tasks
+        if: inputs.action == 'list'
+        run: python main.py list
+
+      - name: Commit and push changes
+        if: inputs.action != 'list'
+        run: |
+          git config user.name "DeadlineHQ Bot"
+          git config user.email "deadlinehq-bot@users.noreply.github.com"
+          git add tasks.json
+          git diff --staged --quiet || git commit -m "[${{ inputs.action }}] ${{ inputs.task_name }}"
+          git push origin mainline
