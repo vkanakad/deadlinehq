@@ -1,5 +1,7 @@
 {
   "email": {
+    "provider": "resend",
+    "resend_from": "DeadlineHQ <onboarding@resend.dev>",
     "smtp_server": "smtp.gmail.com",
     "smtp_port": 587,
     "sender_email": "your_email@gmail.com",
