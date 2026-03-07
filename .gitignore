@@ -1,5 +1,9 @@
 # DeadlineHQ - Git Ignore
 
+# Sensitive data (plain text versions - encrypted versions are committed)
+tasks.json
+config.json
+
 # Backups
 backups/
 

@@ -81,6 +81,22 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Decrypt data
+        env:
+          DEADLINEHQ_ENCRYPTION_KEY: ${{ secrets.DEADLINEHQ_ENCRYPTION_KEY }}
+        run: |
+          if [ -f tasks.enc ]; then
+            python -c "from src.encryption import decrypt_file; decrypt_file('tasks.enc', 'tasks.json')"
+            echo "Decrypted tasks.enc -> tasks.json"
+          else
+            echo "[]" > tasks.json
+            echo "No tasks.enc found, starting fresh"
+          fi
+          if [ -f config.enc ]; then
+            python -c "from src.encryption import decrypt_file; decrypt_file('config.enc', 'config.json')"
+            echo "Decrypted config.enc -> config.json"
+          fi
+
       - name: Create task
         if: inputs.action == 'create'
         run: |
@@ -127,11 +143,15 @@ jobs:
         if: inputs.action == 'list'
         run: python main.py list
 
-      - name: Commit and push changes
+      - name: Encrypt and commit changes
         if: inputs.action != 'list'
+        env:
+          DEADLINEHQ_ENCRYPTION_KEY: ${{ secrets.DEADLINEHQ_ENCRYPTION_KEY }}
         run: |
+          python -c "from src.encryption import encrypt_file; encrypt_file('tasks.json', 'tasks.enc')"
+          echo "Encrypted tasks.json -> tasks.enc"
           git config user.name "DeadlineHQ Bot"
           git config user.email "deadlinehq-bot@users.noreply.github.com"
-          git add tasks.json
+          git add tasks.enc
           git diff --staged --quiet || git commit -m "[${{ inputs.action }}] ${{ inputs.task_name }}"
           git push origin mainline

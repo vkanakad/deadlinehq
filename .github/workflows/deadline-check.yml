@@ -24,6 +24,22 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Decrypt data
+        env:
+          DEADLINEHQ_ENCRYPTION_KEY: ${{ secrets.DEADLINEHQ_ENCRYPTION_KEY }}
+        run: |
+          if [ -f tasks.enc ]; then
+            python -c "from src.encryption import decrypt_file; decrypt_file('tasks.enc', 'tasks.json')"
+            echo "Decrypted tasks.enc -> tasks.json"
+          else
+            echo "[]" > tasks.json
+            echo "No tasks.enc found, no tasks to check"
+          fi
+          if [ -f config.enc ]; then
+            python -c "from src.encryption import decrypt_file; decrypt_file('config.enc', 'config.json')"
+            echo "Decrypted config.enc -> config.json"
+          fi
+
       - name: Show current tasks
         run: python main.py list
 
