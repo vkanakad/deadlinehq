@@ -42,8 +42,8 @@ on:
         description: 'Comma-separated tags (for create action)'
         required: false
         type: string
-      subscriber_email:
-        description: 'Subscriber email (for add_subscriber action)'
+      subscriber_emails:
+        description: 'Subscriber email(s), comma-separated (for add_subscriber action)'
         required: false
         type: string
       sub_task_name:
@@ -95,9 +95,17 @@ jobs:
         if: inputs.action == 'delete'
         run: python main.py delete "${{ inputs.task_name }}"
 
-      - name: Add subscriber
+      - name: Add subscriber(s)
         if: inputs.action == 'add_subscriber'
-        run: python main.py add_subscriber "${{ inputs.task_name }}" "${{ inputs.subscriber_email }}"
+        run: |
+          IFS=',' read -ra EMAILS <<< "${{ inputs.subscriber_emails }}"
+          for email in "${EMAILS[@]}"; do
+            email=$(echo "$email" | xargs)  # trim whitespace
+            if [ -n "$email" ]; then
+              echo "Adding subscriber: $email"
+              python main.py add_subscriber "${{ inputs.task_name }}" "$email"
+            fi
+          done
 
       - name: Add sub-task
         if: inputs.action == 'add_sub'
